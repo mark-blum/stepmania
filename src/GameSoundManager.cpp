@@ -84,6 +84,8 @@ static RageThread MusicThread;
 vector<std::string> g_SoundsToPlayOnce;
 vector<std::string> g_SoundsToPlayOnceFromDir;
 vector<std::string> g_SoundsToPlayOnceFromAnnouncer;
+// Avoid playing same sound by having a predefined order
+std::unordered_map<std::string, vector<int>> g_DirSoundOrder;
 
 struct MusicToPlay
 {
@@ -305,7 +307,28 @@ static void DoPlayOnceFromDir( std::string sPath )
 	{
 		return;
 	}
-	int index = RandomInt( arraySoundFiles.size( ));
+    else if (arraySoundFiles.size() == 1)
+    {
+        DoPlayOnce( sPath + arraySoundFiles[0] );
+        return;
+    }
+
+    g_Mutex->Lock();
+    auto map_elem = g_DirSoundOrder.insert({sPath, vector<int>);
+    vector<int> &order = &map_elem.first.second;
+    // Repopulate and reshuffle list if it was just inserted or exhausted
+    if (!map_elem.second || order.empty())
+    {
+        for (int i = 0; i < arraySoundFiles.size(); i++)
+        {
+            order.push_back(i);
+        }
+        std::random_shuffle(order.begin(), order.end());
+    }
+	int index = order.back();
+    order.pop_back();
+    g_Mutex->Unlock();
+
 	DoPlayOnce(  sPath + arraySoundFiles[index]  );
 }
 
