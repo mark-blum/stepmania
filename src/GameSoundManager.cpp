@@ -84,6 +84,9 @@ vector<RString> g_SoundsToPlayOnce;
 vector<RString> g_SoundsToPlayOnceFromDir;
 vector<RString> g_SoundsToPlayOnceFromAnnouncer;
 
+// FIXME change to unordered map (Is this an old compiler?)
+std::map<RString, vector<int>> g_DirSoundOrder;
+
 struct MusicToPlay
 {
 	RString m_sFile, m_sTimingFile;
@@ -284,12 +287,14 @@ static void DoPlayOnce( RString sPath )
 
 static void DoPlayOnceFromDir( RString sPath )
 {
-	if( sPath == "" )
+	if( sPath == "" ) {
 		return;
+    }
 
 	// make sure there's a slash at the end of this path
-	if( sPath.Right(1) != "/" )
+	if( sPath.Right(1) != "/" ) {
 		sPath += "/";
+    }
 
 	vector<RString> arraySoundFiles;
 	GetDirListing( sPath + "*.mp3", arraySoundFiles );
@@ -297,10 +302,29 @@ static void DoPlayOnceFromDir( RString sPath )
 	GetDirListing( sPath + "*.ogg", arraySoundFiles );
 	GetDirListing( sPath + "*.oga", arraySoundFiles );
 
-	if( arraySoundFiles.empty() )
+	if( arraySoundFiles.empty() ) {
 		return;
+    }
+    else if ( arraySoundFiles.size() == 1) {
+        DoPlayOnce( sPath + arraySoundFiles[0] );
+        return;
+    }
 
-	int index = RandomInt( arraySoundFiles.size( ));
+    g_Mutex->Lock();
+    auto map_elem = g_DirSoundOrder.insert({sPath, vector<int>()});
+    vector<int> &order = (map_elem.first)->second;
+    // Repopulate and reshuffle order if the list was exhausted
+    if (order.empty()) {
+        for (int i = 0; i < arraySoundFiles.size(); i++) {
+            order.push_back(i);
+        }
+        std::random_shuffle(order.begin(), order.end());
+    }
+
+    int index = order.back();
+    order.pop_back();
+    g_Mutex->Unlock();
+
 	DoPlayOnce(  sPath + arraySoundFiles[index]  );
 }
 
