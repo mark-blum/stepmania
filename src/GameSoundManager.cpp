@@ -314,8 +314,8 @@ static void DoPlayOnceFromDir( std::string sPath )
     }
 
     g_Mutex->Lock();
-    auto map_elem = g_DirSoundOrder.insert({sPath, vector<int>);
-    vector<int> &order = &map_elem.first.second;
+    auto map_elem = g_DirSoundOrder.insert({sPath, vector<int>()});
+    vector<int> &order = (map_elem.first)->second;
     // Repopulate and reshuffle list if it was just inserted or exhausted
     if (!map_elem.second || order.empty())
     {
